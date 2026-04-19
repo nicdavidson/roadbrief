@@ -96,7 +96,7 @@ def delete_poi(stop_id: int, poi_id: int, session: Session = Depends(get_session
 
 
 @router.get("/pois/index")
-def index_pois(session: Session = Depends(get_session)):
+def index_pois(session: Session = Depends(get_session), rider=Depends(require_admin)):
     """Re-index all POIs for search. [admin]"""
     pois = session.query(POI).all()
     return {"ok": True, "pois_indexed": len(pois)}

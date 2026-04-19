@@ -1,7 +1,9 @@
+import os
+
 from sqlmodel import create_engine, Session
 from app.config import settings
 
-engine = create_engine(settings.DATABASE_URL, echo=True)
+engine = create_engine(settings.DATABASE_URL, echo=os.environ.get("DEBUG", "").lower() == "true")
 
 
 def get_session():

@@ -1,5 +1,8 @@
-from fastapi import FastAPI
+import os
+
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from app.database import engine
 from app.routes.auth import router as auth_router
 from app.routes.riders import router as riders_router
@@ -14,15 +17,28 @@ from app.routes.photos import router as photos_router
 
 app = FastAPI(title="RoadBrief API", version="0.1.0")
 
-# CORS: restrict to known frontend origins
-FRONTEND_URLS = [
-    "http://localhost:5173",  # Vite dev server
-    "http://localhost:8000",  # Backend serving frontend (dev)
-]
+
+# ─── Security headers middleware ──────────────────────────────────────────────
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response: Response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "geolocation=(self), camera=(self), microphone=()"
+        if os.environ.get("ROADBRIEF_ENV") == "production":
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        return response
+
+app.add_middleware(SecurityHeadersMiddleware)
+
+
+# ─── CORS ────���───────────────────────────────���────────────────────────────────
+FRONTEND_URLS = os.environ.get("CORS_ORIGINS", "http://localhost:5173,http://localhost:8000").split(",")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=FRONTEND_URLS,
+    allow_origins=[u.strip() for u in FRONTEND_URLS],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=[

@@ -28,7 +28,7 @@ def generate_legs_for_day(day_id: int, session: Session) -> list[Leg]:
 
         # Call OSRM public demo API
         url = (
-            f"http://router.project-osrm.org/route/v1/driving/"
+            f"https://router.project-osrm.org/route/v1/driving/"
             f"{start.lng},{start.lat};{end.lng},{end.lat}"
             f"?overview=full&geometries=polyline"
         )
