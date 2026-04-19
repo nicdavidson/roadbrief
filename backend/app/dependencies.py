@@ -48,7 +48,7 @@ def get_current_rider(request: Request = None, session: Session = Depends(get_se
             detail="Invalid or expired token.",
         )
 
-    rider_id = payload.get("rider_id")
+    rider_id = payload.get("sub")
     if rider_id is None:
         raise HTTPException(
             status_code=401,

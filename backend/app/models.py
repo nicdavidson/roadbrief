@@ -185,6 +185,19 @@ class Photo(ModelBase, table=True):
     nearest_stop: Optional[Stop] = Relationship(back_populates="photos")
 
 
+# ─── Rider response (excludes sensitive fields) ──────────────────────────────
+class RiderRead(SQLModel):
+    id: int
+    org_id: int
+    display_name: str
+    email: Optional[str] = None
+    profile_photo_url: Optional[str] = None
+    motorcycle: Optional[str] = None
+    auth_type: str
+    role: str
+    created_at: datetime
+
+
 # ─── Read/Response schemas (Pydantic-only, no table) ─────────────────────────
 
 class RideRead(SQLModel):

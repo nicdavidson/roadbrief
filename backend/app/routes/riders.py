@@ -7,7 +7,7 @@ from sqlmodel import Session
 
 from app.database import get_session
 from app.dependencies import get_current_rider, require_admin
-from app.models import Rider
+from app.models import Rider, RiderRead
 
 router = APIRouter(prefix="/api/v1/riders", tags=["Riders"])
 
@@ -25,13 +25,13 @@ class RiderUpdate(BaseModel):
     email: str = None
 
 
-@router.get("/me", response_model=Rider)
+@router.get("/me", response_model=RiderRead)
 def get_me(session: Session = Depends(get_session), rider=Depends(get_current_rider)):
     """Get current rider profile. [authenticated]"""
     return rider
 
 
-@router.put("/me", response_model=Rider)
+@router.put("/me", response_model=RiderRead)
 def update_me(body: RiderUpdate, session: Session = Depends(get_session), rider=Depends(get_current_rider)):
     """Update current rider profile. [authenticated]"""
     if body.display_name is not None:
@@ -51,7 +51,7 @@ def list_riders(session: Session = Depends(get_session), rider=Depends(require_a
     return session.query(Rider).where(Rider.org_id == 1).all()
 
 
-@router.put("/{rider_id}", response_model=Rider)
+@router.put("/{rider_id}", response_model=RiderRead)
 def update_rider(rider_id: int, body: RiderUpdate, session: Session = Depends(get_session), rider=Depends(require_admin)):
     """Update a rider. [admin]"""
     target = session.get(Rider, rider_id)
@@ -84,7 +84,7 @@ def _verify_password(plain: str, hashed: str) -> bool:
     return _password_ctx.verify(plain, hashed)
 
 
-@router.put("/{rider_id}/set-password", response_model=Rider)
+@router.put("/{rider_id}/set-password", response_model=RiderRead)
 def set_password(rider_id: int, body: dict = None, session: Session = Depends(get_session), rider=Depends(require_admin)):
     """Set a rider's password. [admin]"""
     if not body or "password" not in body:
