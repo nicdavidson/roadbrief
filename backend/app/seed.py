@@ -55,13 +55,14 @@ def create_ride_with_creator(seed_session: Session, creator_id: int) -> Ride:
 
 
 def _create_ride(seed_session: Session, creator_id: int) -> Ride:
+    import secrets
     ride = Ride(
         org_id=1,
         name="EMBC 2026 - Montana Freedom Caucus Ride",
         description="Annual Eastern Montana Bicycle Club ride through the Black Hills and beyond.",
         start_date="2026-07-15",
         end_date="2026-07-18",
-        share_code="embc2026",
+        share_code=secrets.token_urlsafe(16),
         status="published",
         created_by=creator_id,
     )
@@ -299,7 +300,7 @@ def main():
     with Session(engine) as session:
         # Force reseed: clean up any existing EMBC data
         from app.models import Day, Stop, Leg, POI, Highlight, RideRider, Rider
-        existing = session.query(Ride).filter(Ride.share_code == "embc2026").first()
+        existing = session.query(Ride).filter(Ride.name.like("EMBC 2026%")).first()
         if existing:
             print("EMBC ride already exists. Dropping and reseeding...")
             # Clean up children in FK order

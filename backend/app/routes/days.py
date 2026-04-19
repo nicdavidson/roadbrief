@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlmodel import Session
@@ -22,14 +24,14 @@ class DayCreate(BaseModel):
     day_number: int
     date: str
     title: str
-    notes = None
+    notes: Optional[str] = None
 
 
 class DayUpdate(BaseModel):
-    day_number: int = None
-    date: str = None
-    title: str = None
-    notes = None
+    day_number: Optional[int] = None
+    date: Optional[str] = None
+    title: Optional[str] = None
+    notes: Optional[str] = None
 
 
 @router.post("/days", response_model=Day)

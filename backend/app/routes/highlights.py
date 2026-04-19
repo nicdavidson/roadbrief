@@ -10,12 +10,21 @@ from app.models import Highlight
 router = APIRouter(prefix="/api/v1", tags=["Highlights"])
 
 
+VALID_CATEGORIES = {"scenic", "warning", "cost", "tip", "info"}
+
+
 def _sanitize_text(text, max_length=5000):
     """Sanitize text input."""
     if not text:
         return ""
     sanitized = re.sub(r'[\x00-\x1f]', '', text.strip())[:max_length]
     return sanitized
+
+
+def _validate_category(category: str) -> str:
+    if category not in VALID_CATEGORIES:
+        raise HTTPException(status_code=400, detail=f"Invalid category. Must be one of: {', '.join(sorted(VALID_CATEGORIES))}")
+    return category
 
 
 class HighlightCreate(BaseModel):
@@ -44,6 +53,8 @@ def create_highlight(body: HighlightCreate, session: Session = Depends(get_sessi
     """Create a new highlight. [admin]"""
     title = _sanitize_text(body.title, max_length=200)
     body_text = _sanitize_text(body.body, max_length=10000)
+
+    _validate_category(body.category)
 
     highlight = Highlight(
         ride_id=body.ride_id,
@@ -79,6 +90,7 @@ def update_highlight(highlight_id: int, body: HighlightUpdate, session: Session 
     if body.body is not None:
         highlight.body = _sanitize_text(body.body, max_length=10000)
     if body.category is not None:
+        _validate_category(body.category)
         highlight.category = body.category
     if body.sort_order is not None:
         highlight.sort_order = body.sort_order
