@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+/* Mobile-first base styles for RoadBrief */
+:root {
+  --text: #374151;
+  --text-h: #111827;
+  --bg: #ffffff;
+  --border: #e5e7eb;
+  --accent: #2563eb;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #9ca3af;
+    --text-h: #f3f4f6;
+    --bg: #111827;
+    --border: #374151;
+    --accent: #60a5fa;
+  }
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+#root {
+  min-height: 100svh;
+}
+
+/* Map container */
+.map-container {
+  width: 100%;
+  height: 60vh;
+  min-height: 250px;
+}
+
+/* Day pills */
+.day-pills {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.day-pill {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.day-pill.active {
+  background: var(--accent);
+  color: white;
+}
+
+/* Stop cards */
+.stop-card {
+  border-bottom: 1px solid var(--border);
+}
+
+/* Highlight cards by category */
+.highlight-warning { background: #fef3c7; }
+.highlight-scenic { background: #dcfce7; }
+.highlight-cost { background: #dbeafe; }
+.highlight-tip { background: #f3e8ff; }
+.highlight-info { background: #f3f4f6; }
+
+/* Mobile optimizations */
+@media (max-width: 375px) {
+  html { font-size: 14px; }
+}

@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+backend/venv/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Build output
+dist/
+dist-ssr/
+build/
+
+# Uploads
+backend/uploads/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Editor/IDE
+.vscode/
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OpenCode
+.opencode/
+
+# OS
+Thumbs.db

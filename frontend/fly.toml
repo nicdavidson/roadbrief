@@ -1,0 +1,26 @@
+app = "roadbrief-web"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[[services]]
+  internal_port = 80
+  force_https = true
+  protocol = "tcp"
+
+  [services.concurrency]
+    hard_limit = 50
+    soft_limit = 20
+
+[[services.ports]]
+  handlers = ["http"]
+  port = 80
+  force_https = true
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory_mb = 128
+
+[deploy]
+  strategy = "canary"
+  max_unavailable = 1
