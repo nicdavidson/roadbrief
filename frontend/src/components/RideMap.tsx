@@ -233,7 +233,7 @@ export default function RideMap({ days, activeDay, selectedStopId, onMarkerClick
               }
 
             } catch (err) {
-              console.warn('Failed to decode polyline for leg', leg.id, err);
+              if (import.meta.env.DEV) console.warn('Failed to decode polyline for leg', leg.id, err);
             }
           });
         });

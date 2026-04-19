@@ -107,7 +107,7 @@ export async function getProfile(): Promise<RiderProfile> {
 
 export async function updateProfile(data: UpdateProfileRequest): Promise<RiderProfile> {
   const response = await fetch(`${API_BASE}/riders/me`, {
-    method: 'PATCH',
+    method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });

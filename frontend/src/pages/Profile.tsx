@@ -2,24 +2,6 @@ import { useState, useEffect } from 'react';
 import { getProfile, updateProfile } from '../api';
 import type { RiderProfile, UpdateProfileRequest } from '../types';
 
-const MOTORCYCLE_OPTIONS = [
-  'Sport',
-  'Cruiser',
-  'Touring',
-  'Adventure/Dual Sport',
-  'Naked/Streetfighter',
-  'Scrambler',
-  'Bagger',
-  'Other',
-];
-
-const EXPERIENCE_OPTIONS = [
-  'Beginner (< 2 years)',
-  'Intermediate (2-5 years)',
-  'Experienced (5-10 years)',
-  'Expert (10+ years)',
-];
-
 export default function Profile() {
   const [profile, setProfile] = useState<RiderProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -34,14 +16,11 @@ export default function Profile() {
         setProfile(data);
         setForm({
           display_name: data.display_name || '',
-          bio: data.bio || '',
-          motorcycle_type: data.motorcycle_type || '',
-          riding_experience: data.riding_experience || '',
+          email: data.email || '',
         });
         setLoading(false);
       })
       .catch(() => {
-        // Not logged in — show sign-up prompt
         setLoading(false);
       });
   }, []);
@@ -73,7 +52,6 @@ export default function Profile() {
     );
   }
 
-  // Not logged in — show sign-up CTA
   if (!profile) {
     return (
       <div className="min-h-screen bg-gray-900 text-white">
@@ -98,32 +76,27 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      {/* Header */}
       <header className="bg-gray-800 border-b border-gray-700">
         <div className="max-w-2xl mx-auto px-4 py-6">
           <h1 className="text-2xl font-bold">Profile</h1>
         </div>
       </header>
 
-      {/* Profile content */}
       <main className="max-w-2xl mx-auto px-4 py-8">
-        {/* Avatar */}
         <div className="flex flex-col items-center mb-8">
           <div className="w-24 h-24 rounded-full bg-gray-700 flex items-center justify-center text-3xl mb-4">
             {profile.display_name?.[0]?.toUpperCase() || '🏍️'}
           </div>
           <h2 className="text-xl font-semibold">
-            {profile.display_name || profile.username}
+            {profile.display_name}
           </h2>
-          <p className="text-gray-400 text-sm">@{profile.username}</p>
+          <p className="text-gray-400 text-sm">{profile.role}</p>
           {profile.email && (
             <p className="text-gray-500 text-sm mt-1">{profile.email}</p>
           )}
         </div>
 
-        {/* Edit form */}
         <form onSubmit={e => { e.preventDefault(); handleSave(); }} className="space-y-6">
-          {/* Display name */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Display Name
@@ -137,55 +110,25 @@ export default function Profile() {
             />
           </div>
 
-          {/* Bio */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Bio
+              Email
             </label>
-            <textarea
-              value={form.bio || ''}
-              onChange={e => handleChange('bio', e.target.value)}
-              rows={3}
-              className="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 text-white focus:border-blue-500 focus:outline-none resize-none"
-              placeholder="Tell us about your riding adventures..."
+            <input
+              type="email"
+              value={form.email || ''}
+              onChange={e => handleChange('email', e.target.value)}
+              className="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 text-white focus:border-blue-500 focus:outline-none"
+              placeholder="your@email.com"
             />
           </div>
 
-          {/* Motorcycle type */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Motorcycle Type
-            </label>
-            <select
-              value={form.motorcycle_type || ''}
-              onChange={e => handleChange('motorcycle_type', e.target.value)}
-              className="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 text-white focus:border-blue-500 focus:outline-none"
-            >
-              <option value="">Select type...</option>
-              {MOTORCYCLE_OPTIONS.map(opt => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
-          </div>
+          {profile.motorcycle && (
+            <div className="text-sm text-gray-400">
+              Motorcycle: {profile.motorcycle}
+            </div>
+          )}
 
-          {/* Experience */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Riding Experience
-            </label>
-            <select
-              value={form.riding_experience || ''}
-              onChange={e => handleChange('riding_experience', e.target.value)}
-              className="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 text-white focus:border-blue-500 focus:outline-none"
-            >
-              <option value="">Select experience...</option>
-              {EXPERIENCE_OPTIONS.map(opt => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Save button */}
           <button
             type="submit"
             disabled={saving}
@@ -204,7 +147,6 @@ export default function Profile() {
             <p className="text-red-400 text-sm text-center">{error}</p>
           )}
 
-          {/* Account info */}
           <div className="pt-6 border-t border-gray-700">
             <p className="text-sm text-gray-500">
               Member since {new Date(profile.created_at).toLocaleDateString()}
