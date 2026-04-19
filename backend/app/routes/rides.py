@@ -118,12 +118,12 @@ def create_ride(body: RideCreate, session: Session = Depends(get_session), rider
     description = _sanitize_description(body.description)
 
     ride = Ride(
-        org_id=body.org_id,
+        org_id=rider.org_id,
         name=name,
         description=description,
         start_date=body.start_date,
         end_date=body.end_date,
-        share_code=secrets.token_urlsafe(8),
+        share_code=secrets.token_urlsafe(16),
         status="draft",
         created_by=rider.id,
     )
@@ -135,19 +135,23 @@ def create_ride(body: RideCreate, session: Session = Depends(get_session), rider
 
 @router.get("/{share_code}", response_model=RideRead)
 def get_ride(share_code: str, session: Session = Depends(get_session)):
-    """Get ride by share_code. [public]"""
+    """Get ride by share_code. [public, published only]"""
     ride = session.query(Ride).where(Ride.share_code == share_code).first()
-    if not ride:
+    if not ride or ride.status != "published":
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ride not found.")
     return _build_ride_read(ride, session)
 
 
 @router.put("/{id}", response_model=RideRead)
 def update_ride(id: int, body: RideUpdate, session: Session = Depends(get_session), rider=Depends(require_admin)):
-    """Update ride metadata. [admin]"""
+    """Update ride metadata. [admin, owner only]"""
     ride = session.get(Ride, id)
     if not ride:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ride not found.")
+    if ride.created_by != rider.id:
+        rr = session.query(RideRider).where(RideRider.ride_id == ride.id, RideRider.rider_id == rider.id).first()
+        if not rr:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized for this ride.")
     if body.name is not None:
         ride.name = _sanitize_name(body.name)
     if body.description is not None:
@@ -164,13 +168,17 @@ def update_ride(id: int, body: RideUpdate, session: Session = Depends(get_sessio
 
 @router.post("/{id}/publish", response_model=RideRead)
 def publish_ride(id: int, session: Session = Depends(get_session), rider=Depends(require_admin)):
-    """Publish a ride and generate share_code. [admin]"""
+    """Publish a ride and generate share_code. [admin, owner only]"""
     ride = session.get(Ride, id)
     if not ride:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ride not found.")
+    if ride.created_by != rider.id:
+        rr = session.query(RideRider).where(RideRider.ride_id == ride.id, RideRider.rider_id == rider.id).first()
+        if not rr:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized for this ride.")
     ride.status = "published"
     if not ride.share_code:
-        ride.share_code = secrets.token_urlsafe(8)
+        ride.share_code = secrets.token_urlsafe(16)
     session.add(ride)
     session.commit()
     session.refresh(ride)

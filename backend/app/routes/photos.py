@@ -35,6 +35,17 @@ def _resolve_path(filename: str) -> Path:
     return resolved
 
 
+def _validate_image_magic(data: bytes) -> None:
+    """Validate image file by magic bytes, not Content-Type header."""
+    if data[:3] == b'\xff\xd8\xff':
+        return  # JPEG
+    if data[:8] == b'\x89PNG\r\n\x1a\n':
+        return  # PNG
+    if data[:4] == b'RIFF' and data[8:12] == b'WEBP':
+        return  # WebP
+    raise HTTPException(status_code=400, detail="Only JPEG, PNG, and WebP images are allowed.")
+
+
 def _sanitize_text(text, max_length=500):
     """Sanitize text input."""
     if not text:
@@ -95,18 +106,13 @@ async def upload_photo(
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
 
-    # Validate file type
-    content_type = file.content_type or ""
-    allowed_types = ['image/jpeg', 'image/png', 'image/webp']
-    if content_type not in allowed_types:
-        raise HTTPException(status_code=400, detail="Only JPEG, PNG, and WebP images are allowed.")
-
-    # Read file contents
-    contents = await file.read()
-
-    # Enforce 10MB limit
+    # Read file contents (limit to 10MB + 1 byte to detect oversized files)
+    contents = await file.read(10 * 1024 * 1024 + 1)
     if len(contents) > 10 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File too large. Maximum 10MB.")
+
+    # Validate file type by magic bytes (not just Content-Type header)
+    _validate_image_magic(contents)
 
     # Sanitize caption
     sanitized_caption = _sanitize_text(caption, max_length=500) if caption else None
@@ -159,13 +165,14 @@ def delete_photo(photo_id: int, session: Session = Depends(get_session), rider=D
     if photo.rider_id != rider.id and rider.role not in ("admin",):
         raise HTTPException(status_code=403, detail="Not authorized to delete this photo.")
 
-    # Delete file from disk
+    # Delete file from disk (validate path stays within UPLOADS_DIR)
     try:
-        file_path = UPLOADS_DIR / photo.image_url.replace("photos/", "")
+        filename = photo.image_url.replace("photos/", "")
+        file_path = _resolve_path(filename)
         if file_path.exists():
             os.remove(file_path)
-    except OSError:
-        pass  # File may have been deleted already
+    except (OSError, HTTPException):
+        pass  # File may have been deleted already or path invalid
 
     session.delete(photo)
     session.commit()
