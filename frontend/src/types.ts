@@ -108,22 +108,20 @@ export interface PhotoRead {
   created_at: string;
 }
 
-// Rider profile types
+// Rider profile types (matches RiderRead from backend)
 export interface RiderProfile {
   id: number;
-  username: string;
+  org_id: number;
+  display_name: string;
   email?: string | null;
-  display_name?: string | null;
-  bio?: string | null;
-  avatar_url?: string | null;
-  motorcycle_type?: string | null;
-  riding_experience?: string | null;
+  profile_photo_url?: string | null;
+  motorcycle?: string | null;
+  auth_type: string;
+  role: string;
   created_at: string;
 }
 
 export interface UpdateProfileRequest {
   display_name?: string;
-  bio?: string;
-  motorcycle_type?: string;
-  riding_experience?: string;
+  email?: string;
 }

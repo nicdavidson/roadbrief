@@ -17,8 +17,8 @@ function App() {
         {/* Profile: /profile */}
         <Route path="/profile" element={<Profile />} />
         
-        {/* Default: redirect to EMBC ride */}
-        <Route path="/" element={<RideView shareCode="embc2026" />} />
+        {/* Default: redirect to ride route */}
+        <Route path="/" element={<div className="flex items-center justify-center min-h-screen text-gray-500">Navigate to /ride/YOUR_SHARE_CODE</div>} />
       </Routes>
     </BrowserRouter>
   );

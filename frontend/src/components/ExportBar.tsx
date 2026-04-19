@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 
 interface ExportBarProps {
   dayId: number;
@@ -12,12 +12,7 @@ export default function ExportBar({ dayId, rideShareCode }: ExportBarProps) {
   // Generate a simple QR code using a public API
   const [showQR, setShowQR] = useState(false);
 
-  const qrUrl = useMemo(() => {
-    if (!rideShareCode) return '';
-    // Use a public QR API — encode the ride share URL
-    const url = `https://roadbrief.local/ride/${rideShareCode}`;
-    return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
-  }, [rideShareCode]);
+  const shareUrl = rideShareCode ? `${window.location.origin}/ride/${rideShareCode}` : '';
 
   return (
     <div className="mt-4 space-y-3">
@@ -50,16 +45,21 @@ export default function ExportBar({ dayId, rideShareCode }: ExportBarProps) {
         )}
       </div>
 
-      {/* QR code modal */}
-      {showQR && qrUrl && (
+      {/* Share URL modal */}
+      {showQR && shareUrl && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowQR(false)}>
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-sm w-full" onClick={e => e.stopPropagation()}>
             <h3 className="font-semibold text-center mb-4">Share this ride</h3>
-            <img src={qrUrl} alt="QR Code" className="w-48 h-48 mx-auto rounded-lg" />
-            <p className="text-xs text-gray-500 text-center mt-3">Scan to open on your phone</p>
+            <p className="text-sm text-center font-mono bg-gray-100 dark:bg-gray-700 px-3 py-2 rounded break-all select-all">{shareUrl}</p>
+            <button
+              onClick={() => { navigator.clipboard.writeText(shareUrl); }}
+              className="mt-3 w-full px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+            >
+              Copy Link
+            </button>
             <button
               onClick={() => setShowQR(false)}
-              className="mt-4 w-full px-3 py-2 bg-gray-200 dark:bg-gray-700 text-sm rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
+              className="mt-2 w-full px-3 py-2 bg-gray-200 dark:bg-gray-700 text-sm rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
             >
               Close
             </button>

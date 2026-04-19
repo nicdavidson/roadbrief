@@ -51,7 +51,7 @@ export default function POIItem({ poi }: POIItemProps) {
           {poi.hours && (
             <span>{poi.hours}</span>
           )}
-          {poi.phone && (
+          {poi.phone && /^[\d\s+\-().]+$/.test(poi.phone) && (
             <a href={`tel:${poi.phone}`} className="text-blue-500">
               {poi.phone}
             </a>

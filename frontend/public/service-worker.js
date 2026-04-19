@@ -37,15 +37,16 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  // API calls always bypass cache entirely (no read or write)
+  if (request.url.includes('/api/')) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
   event.respondWith(
     caches.match(request)
       .then(cached => {
         if (cached) return cached;
-        
-        // For API calls, always go to network
-        if (request.url.includes('/api/')) {
-          return fetch(request);
-        }
 
         // For static assets, try network then cache as fallback
         return fetch(request)
