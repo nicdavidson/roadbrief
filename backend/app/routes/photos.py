@@ -9,7 +9,7 @@ import re
 from pathlib import Path
 
 from app.database import get_session
-from app.models import Ride, Photo
+from app.models import Ride, RideRider, Photo
 from app.dependencies import get_current_rider
 
 router = APIRouter(prefix="/api/v1", tags=["Photos"])
@@ -59,9 +59,9 @@ def list_photos(
     ride_id: int,
     session: Session = Depends(get_session),
 ):
-    """List all photos for a ride. [public]"""
+    """List all photos for a ride. [public, published only]"""
     ride = session.get(Ride, ride_id)
-    if not ride:
+    if not ride or ride.status != "published":
         raise HTTPException(status_code=404, detail="Ride not found")
 
     photos = (
@@ -101,10 +101,16 @@ async def upload_photo(
     session: Session = Depends(get_session),
     rider=Depends(get_current_rider),
 ):
-    """Upload a photo for a ride. [admin]"""
+    """Upload a photo for a ride. [authenticated, ride member]"""
     ride = session.get(Ride, ride_id)
     if not ride:
         raise HTTPException(status_code=404, detail="Ride not found")
+
+    # Verify rider is creator or member of this ride
+    if ride.created_by != rider.id:
+        rr = session.query(RideRider).where(RideRider.ride_id == ride.id, RideRider.rider_id == rider.id).first()
+        if not rr:
+            raise HTTPException(status_code=403, detail="Not authorized for this ride.")
 
     # Read file contents (limit to 10MB + 1 byte to detect oversized files)
     contents = await file.read(10 * 1024 * 1024 + 1)

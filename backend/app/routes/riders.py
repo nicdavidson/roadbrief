@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 import re
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -45,10 +45,10 @@ def update_me(body: RiderUpdate, session: Session = Depends(get_session), rider=
     return rider
 
 
-@router.get("/", response_model=list)
+@router.get("/", response_model=List[RiderRead])
 def list_riders(session: Session = Depends(get_session), rider=Depends(require_admin)):
     """List all riders. [admin]"""
-    return session.query(Rider).where(Rider.org_id == 1).all()
+    return session.query(Rider).where(Rider.org_id == rider.org_id).all()
 
 
 @router.put("/{rider_id}", response_model=RiderRead)

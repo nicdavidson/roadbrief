@@ -241,7 +241,7 @@ def seed_highlights(seed_session: Session, ride: Ride, day_info: dict):
                 if ss and es:
                     start_name = ss.name.lower()
                     end_name = es.name.lower()
-            except:
+            except Exception:
                 pass
             
             # Iron Mountain Road highlight (16A between Hill City area and Keystone)

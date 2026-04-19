@@ -74,9 +74,9 @@ def _decode_polyline(encoded: str) -> list[tuple[float, float]]:
             index += 1
             if (char & 0x20) == 0:
                 break
-            shift += 1
+            shift += 5
 
-        dlat = byte if byte & 1 == 0 else ~(byte >> 1)
+        dlat = ~(byte >> 1) if byte & 1 else byte >> 1
         lat += dlat
 
         byte = 0
@@ -87,9 +87,9 @@ def _decode_polyline(encoded: str) -> list[tuple[float, float]]:
             index += 1
             if (char & 0x20) == 0:
                 break
-            shift += 1
+            shift += 5
 
-        dlng = byte if byte & 1 == 0 else ~(byte >> 1)
+        dlng = ~(byte >> 1) if byte & 1 else byte >> 1
         lng += dlng
 
         result.append((lat / 1e5, lng / 1e5))

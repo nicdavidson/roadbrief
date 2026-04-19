@@ -17,7 +17,7 @@ def create_access_token(
     """Create a JWT access token."""
     exp = datetime.now(timezone.utc) + timedelta(days=ACCESS_TOKEN_EXPIRE_DAYS)
     payload = {
-        "sub": rider_id,
+        "sub": str(rider_id),
         "role": role,
         "auth_type": auth_type,
         "exp": exp,

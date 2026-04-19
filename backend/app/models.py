@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import List, Optional
 
 from sqlalchemy import Column, ForeignKey, Integer, and_
@@ -15,7 +15,7 @@ class ModelBase(SQLModel):
 class Organization(ModelBase, table=True):
     name: str
     slug: str = Field(unique=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     rides: List["Ride"] = Relationship(back_populates="organization")
     riders: List["Rider"] = Relationship(back_populates="organization")
@@ -31,7 +31,7 @@ class Ride(ModelBase, table=True):
     share_code: str = Field(unique=True)
     status: str = "draft"  # draft | published | archived
     created_by: int = Field(foreign_key="rider.id")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     organization: Organization = Relationship(back_populates="rides")
     days: List["Day"] = Relationship(back_populates="ride")
@@ -149,7 +149,7 @@ class Rider(ModelBase, table=True):
     emergency_contact: Optional[str] = None
     auth_type: str = "anonymous"  # anonymous | local | account
     role: str = "rider"  # admin | leader | rider
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     organization: Organization = Relationship(back_populates="riders")
     ride_riders: List["RideRider"] = Relationship(back_populates="rider")
@@ -177,7 +177,7 @@ class Photo(ModelBase, table=True):
     caption: Optional[str] = None
     nearest_stop_id: Optional[int] = Field(default=None, foreign_key="stop.id")
     taken_at: Optional[datetime] = None
-    uploaded_at: datetime = Field(default_factory=datetime.utcnow)
+    uploaded_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     featured: bool = False
 
     ride: Ride = Relationship(back_populates="photos")
