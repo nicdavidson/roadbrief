@@ -8,7 +8,7 @@ from sqlmodel import Session
 
 from app.auth import create_access_token
 from app.database import get_session
-from app.dependencies import get_current_rider
+from app.dependencies import get_client_ip, get_current_rider
 from app.models import Rider
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Auth"])
@@ -30,7 +30,12 @@ def _check_rate_limit(ip: str) -> None:
     
     # Remove attempts outside the window
     _login_attempts[ip] = [t for t in _login_attempts[ip] if now - t < LOGIN_WINDOW_SECONDS]
-    
+
+    # Prune empty IP entries to prevent unbounded dict growth
+    if not _login_attempts[ip]:
+        del _login_attempts[ip]
+        return
+
     if len(_login_attempts[ip]) >= MAX_LOGIN_ATTEMPTS:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -95,13 +100,17 @@ class TokenResponse(BaseModel):
 
 
 @router.post("/register", response_model=TokenResponse)
-def register(body: RegisterRequest, session: Session = Depends(get_session)):
+def register(request: Request, body: RegisterRequest, session: Session = Depends(get_session)):
     """Register a new rider.
 
     - No password -> Tier 2 (local, auth_type="local")
     - Password without email -> Tier 3 (account, auth_type="account") with warning
     - Password + email -> full Tier 3 account
     """
+    # Rate limiting on registration
+    ip = get_client_ip(request)
+    _check_rate_limit(ip)
+
     # Sanitize inputs
     display_name = _sanitize_display_name(body.display_name)
     email = _sanitize_email(body.email)
@@ -168,7 +177,7 @@ def login(request: Request, body: LoginRequest, session: Session = Depends(get_s
     Account riders: require valid password.
     """
     # Rate limiting on login attempts
-    ip = request.client.host if request.client else "unknown"
+    ip = get_client_ip(request)
     _check_rate_limit(ip)
 
     # Sanitize inputs
