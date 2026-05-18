@@ -1,176 +1,231 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { uploadPhoto, deletePhoto } from '../api';
+import { useState, useEffect, useRef } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { getPhotos, getRide, uploadPhoto, deletePhoto } from '../api';
+import HeaderBar from '../components/HeaderBar';
 import type { PhotoRead, RideResponse } from '../types';
 
 export default function PhotoGallery() {
   const { shareCode } = useParams<{ shareCode: string }>();
-  const navigate = useNavigate();
 
   const [photos, setPhotos] = useState<PhotoRead[]>([]);
   const [ride, setRide] = useState<RideResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoRead | null>(null);
-  const [filterDay, setFilterDay] = useState<number | null>(null);
+
+  // Upload state
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!shareCode) return;
 
-    // Fetch ride to get ride_id and day info
-    fetch(`/api/v1/rides/${shareCode}`)
-      .then(r => r.json())
+    getRide(shareCode)
       .then((data: RideResponse) => {
         setRide(data);
-
-        // Fetch photos for each day and aggregate
-        const photoPromises = (data.days || []).map(day =>
-          fetch(`/api/v1/rides/${data.id}/photos/day/${day.day_number}`)
-            .then(r => r.json()) as Promise<PhotoRead[]>
-        );
-
-        return Promise.all(photoPromises);
+        return getPhotos(data.id);
       })
-      .then(allPhotos => {
-        setPhotos(allPhotos.flat().sort((a, b) => a.created_at.localeCompare(b.created_at)));
-        setLoading(false);
+      .then((photoList) => {
+        setPhotos(photoList.sort((a, b) => a.uploaded_at.localeCompare(b.uploaded_at)));
       })
       .catch(() => {
         setPhotos([]);
-        setLoading(false);
-      });
+      })
+      .finally(() => setLoading(false));
   }, [shareCode]);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || !ride) return;
+  const getPhotoUrl = (photo: PhotoRead): string => {
+    return `/uploads/${photo.image_url}`;
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      setUploadError('Only JPEG, PNG, and WebP images are allowed.');
+      return;
+    }
+
+    // Validate file size (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError('File too large. Maximum 10MB.');
+      return;
+    }
 
     setUploading(true);
-    for (const file of Array.from(files)) {
-      try {
-        const dayNum = filterDay; // Upload to currently filtered day, or null for all days
-        const newPhoto = await uploadPhoto(ride.id, file, dayNum || undefined);
-        setPhotos(prev => [...prev, newPhoto]);
-      } catch (err) {
-        alert(`Failed to upload ${file.name}: ${(err as Error).message}`);
+    setUploadError(null);
+
+    try {
+      const rideId = ride?.id;
+      if (!rideId) return;
+
+      await uploadPhoto(rideId, file);
+
+      // Refresh photo list
+      const updated = await getPhotos(rideId);
+      setPhotos(updated.sort((a, b) => a.uploaded_at.localeCompare(b.uploaded_at)));
+
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
       }
+    } catch (err: any) {
+      setUploadError(err.message || 'Failed to upload photo');
+    } finally {
+      setUploading(false);
     }
-    setUploading(false);
   };
 
   const handleDelete = async (photoId: number) => {
-    if (!confirm('Delete this photo?')) return;
     try {
       await deletePhoto(photoId);
-      setPhotos(prev => prev.filter(p => p.id !== photoId));
-      setSelectedPhoto(null);
-    } catch (err) {
-      alert(`Failed to delete: ${(err as Error).message}`);
+      setPhotos(photos.filter(p => p.id !== photoId));
+      if (selectedPhoto?.id === photoId) {
+        setSelectedPhoto(null);
+      }
+    } catch (err: any) {
+      setUploadError(err.message || 'Failed to delete photo');
     }
   };
 
-  const filteredPhotos = filterDay ? photos.filter(p => p.day_num === filterDay) : photos;
-
-  const getDayNumbers = () => ride?.days?.map(d => d.day_number) || [];
-
-  const getPhotoUrl = (photo: PhotoRead): string => {
-    // Backend serves from /uploads/{file_path}
-    return `/uploads/${photo.file_path}`;
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
-        <div className="text-xl">Loading photos...</div>
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-900">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-sm text-gray-500 dark:text-gray-400">Loading photos...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-white dark:bg-slate-900">
+      {/* Global header (hidden on ride view and photo gallery) */}
+      <HeaderBar onMenuClick={() => {}} />
+
       {/* Header */}
-      <header className="bg-gray-800 border-b border-gray-700">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate(shareCode ? `/ride/${shareCode}` : '/')}
-              className="text-gray-400 hover:text-white transition-colors"
+      <header className="px-4 pt-5 pb-4 sm:px-6 bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Link
+              to={shareCode ? `/ride/${shareCode}` : '/'}
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
             >
-              ← Back to Ride
-            </button>
-            <h1 className="text-xl font-bold">
-              {ride?.name || 'Photo Gallery'}
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+            </Link>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+              Photos
             </h1>
           </div>
-          <label className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg cursor-pointer transition-colors">
-            Upload Photos
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              multiple
-              onChange={handleFileUpload}
-              className="hidden"
-            />
-          </label>
+          {ride && (
+            <span className="text-xs text-gray-400 dark:text-gray-500">{ride.name}</span>
+          )}
         </div>
-      </header>
 
-      {/* Day filter */}
-      {getDayNumbers().length > 1 && (
-        <div className="max-w-6xl mx-auto px-4 py-3">
+        {/* Upload button */}
+        <div className="mt-3">
           <button
-            onClick={() => setFilterDay(null)}
-            className={`px-3 py-1 rounded-l-lg text-sm ${
-              filterDay === null ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'
-            }`}
+            onClick={triggerFileInput}
+            disabled={uploading || !ride}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            All Days
+            {uploading ? (
+              <>
+                <div className="w-4 h-4 border border-white/50 border-t-transparent rounded-full animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 16V4m0 0l-4 4m4-4l4 4M4 17l2 2 6-6" />
+                </svg>
+                Upload Photo
+              </>
+            )}
           </button>
-          {getDayNumbers().map(dayNum => (
-            <button
-              key={dayNum}
-              onClick={() => setFilterDay(dayNum)}
-              className={`px-3 py-1 text-sm ${
-                filterDay === dayNum ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'
-              }`}
-            >
-              Day {dayNum}
-            </button>
-          ))}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
         </div>
-      )}
+
+        {uploadError && (
+          <p className="mt-2 text-sm text-red-500">{uploadError}</p>
+        )}
+      </header>
 
       {/* Photo grid */}
       <main className="max-w-6xl mx-auto px-4 py-6">
-        {filteredPhotos.length === 0 ? (
-          <div className="text-center py-16 text-gray-400">
-            <p className="text-2xl mb-4">📷</p>
-            <p>No photos yet.</p>
-            <p className="text-sm mt-2">Upload photos from your ride to see them here.</p>
+        {photos.length === 0 ? (
+          <div className="text-center py-16">
+            <p className="text-4xl mb-4">📷</p>
+            <p className="text-gray-500 dark:text-gray-400">No photos yet.</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
+              Upload photos from your ride to see them here.
+            </p>
+            <button
+              onClick={triggerFileInput}
+              disabled={!ride}
+              className="mt-4 inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 16V4m0 0l-4 4m4-4l4 4M4 17l2 2 6-6" />
+              </svg>
+              Upload Your First Photo
+            </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {filteredPhotos.map(photo => (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {photos.map(photo => (
               <div
                 key={photo.id}
-                className="relative group cursor-pointer rounded-lg overflow-hidden bg-gray-800"
+                className="relative group cursor-pointer rounded-lg overflow-hidden bg-gray-100 dark:bg-slate-800"
                 onClick={() => setSelectedPhoto(photo)}
               >
                 <img
                   src={getPhotoUrl(photo)}
                   alt={photo.caption || `Photo ${photo.id}`}
                   className="w-full aspect-square object-cover"
+                  loading="lazy"
                 />
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-end">
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-end">
                   <div className="p-3 w-full">
                     {photo.caption && (
-                      <p className="text-sm truncate">{photo.caption}</p>
+                      <p className="text-sm text-white truncate">{photo.caption}</p>
                     )}
-                    {photo.day_num && (
-                      <span className="text-xs bg-gray-700 px-2 py-1 rounded">
-                        Day {photo.day_num}
+                    {photo.featured && (
+                      <span className="text-xs bg-amber-500/80 text-white px-2 py-0.5 rounded">
+                        Featured
                       </span>
                     )}
+                    {/* Delete button (only visible on hover for ride members) */}
+                    <button
+                      onClick={e => {
+                        e.stopPropagation();
+                        if (confirm('Delete this photo?')) {
+                          handleDelete(photo.id);
+                        }
+                      }}
+                      className="absolute top-2 right-2 p-1.5 bg-red-600/80 text-white rounded-full hover:bg-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Delete photo"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -179,55 +234,35 @@ export default function PhotoGallery() {
         )}
       </main>
 
-      {/* Full-screen modal */}
+      {/* Lightbox */}
       {selectedPhoto && (
         <div
-          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center"
+          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
           onClick={() => setSelectedPhoto(null)}
         >
           <button
-            className="absolute top-4 right-4 text-white/70 hover:text-white text-2xl"
+            className="absolute top-4 right-4 text-white/70 hover:text-white text-2xl z-10"
             onClick={() => setSelectedPhoto(null)}
           >
             ✕
           </button>
-          <div className="max-w-4xl max-h-[90vh] p-4" onClick={e => e.stopPropagation()}>
+          <div className="max-w-4xl w-full" onClick={e => e.stopPropagation()}>
             <img
               src={getPhotoUrl(selectedPhoto)}
               alt={selectedPhoto.caption || 'Full screen photo'}
-              className="max-h-[80vh] object-contain"
+              className="max-h-[80vh] w-auto mx-auto object-contain rounded"
             />
-            <div className="mt-4 flex items-center justify-between">
-              <div>
-                {selectedPhoto.caption && (
-                  <p className="text-lg">{selectedPhoto.caption}</p>
-                )}
-                <div className="flex gap-2 mt-2">
-                  {selectedPhoto.day_num && (
-                    <span className="text-sm text-gray-400">Day {selectedPhoto.day_num}</span>
-                  )}
-                  {selectedPhoto.stop_num && (
-                    <span className="text-sm text-gray-400">Stop {selectedPhoto.stop_num}</span>
-                  )}
-                </div>
-              </div>
-              <button
-                onClick={() => handleDelete(selectedPhoto.id)}
-                className="text-red-400 hover:text-red-300 text-sm"
-              >
-                Delete
-              </button>
-            </div>
+            {selectedPhoto.caption && (
+              <p className="text-white text-center mt-4">{selectedPhoto.caption}</p>
+            )}
           </div>
         </div>
       )}
 
-      {/* Upload progress */}
-      {uploading && (
-        <div className="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg">
-          Uploading...
-        </div>
-      )}
+      {/* Footer */}
+      <footer className="px-4 py-6 text-center text-xs text-gray-400 dark:text-gray-600 safe-bottom">
+        RoadBrief
+      </footer>
     </div>
   );
 }

@@ -2,7 +2,9 @@ import os
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
+from pathlib import Path
 from app.database import engine
 from app.routes.auth import router as auth_router
 from app.routes.riders import router as riders_router
@@ -13,7 +15,7 @@ from app.routes.legs import router as legs_router
 from app.routes.pois import router as pois_router
 from app.routes.highlights import router as highlights_router
 from app.routes.export import router as export_router
-from app.routes.photos import router as photos_router
+from app.routes.photos import router as photos_router, UPLOADS_DIR
 
 app = FastAPI(title="RoadBrief API", version="0.1.0")
 
@@ -64,8 +66,11 @@ app.include_router(legs_router)
 app.include_router(pois_router)
 app.include_router(highlights_router)
 app.include_router(export_router)
-app.include_router(photos_router, prefix="/api/v1", tags=["photos"])
+app.include_router(photos_router)
 
+# Serve uploaded photos at /uploads/...
+if UPLOADS_DIR.exists():
+    app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 
 if __name__ == "__main__":
     import uvicorn

@@ -166,6 +166,23 @@ def update_ride(id: int, body: RideUpdate, session: Session = Depends(get_sessio
     return _build_ride_read(ride, session)
 
 
+@router.get("/", response_model=list[RideRead])
+def list_rides(session: Session = Depends(get_session), rider=Depends(get_current_rider)):
+    """List all rides for the current rider. [authenticated]"""
+    rides = session.query(Ride).where(Ride.org_id == rider.org_id).order_by(Ride.created_at.desc()).all()
+    return [_build_ride_read(r, session) for r in rides]
+
+
+@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_ride(id: int, session: Session = Depends(get_session), rider=Depends(require_admin)):
+    """Delete a ride. [admin]"""
+    ride = session.get(Ride, id)
+    if not ride:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ride not found.")
+    session.delete(ride)
+    session.commit()
+
+
 @router.post("/{id}/publish", response_model=RideRead)
 def publish_ride(id: int, session: Session = Depends(get_session), rider=Depends(require_admin)):
     """Publish a ride and generate share_code. [admin, owner only]"""

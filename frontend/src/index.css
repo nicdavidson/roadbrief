@@ -1,79 +1,62 @@
 @import "tailwindcss";
+@import "mapbox-gl/dist/mapbox-gl.css";
 
-/* Mobile-first base styles for RoadBrief */
 :root {
   --text: #374151;
   --text-h: #111827;
+  --text-muted: #6b7280;
   --bg: #ffffff;
+  --bg-alt: #f9fafb;
   --border: #e5e7eb;
   --accent: #2563eb;
+  --accent-hover: #1d4ed8;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #9ca3af;
+    --text: #d1d5db;
     --text-h: #f3f4f6;
-    --bg: #111827;
-    --border: #374151;
-    --accent: #60a5fa;
+    --text-muted: #9ca3af;
+    --bg: #0f172a;
+    --bg-alt: #1e293b;
+    --border: #334155;
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
   }
 }
 
+* { box-sizing: border-box; }
+
 html {
   font-size: 16px;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   color: var(--text);
   background: var(--bg);
+  -webkit-font-smoothing: antialiased;
 }
 
 #root {
   min-height: 100svh;
 }
 
-/* Map container */
-.map-container {
-  width: 100%;
-  height: 60vh;
-  min-height: 250px;
+/* Mapbox overrides */
+.mapboxgl-ctrl-attrib {
+  font-size: 10px !important;
 }
 
-/* Day pills */
-.day-pills {
-  display: flex;
-  gap: 0.5rem;
-  overflow-x: auto;
-  padding: 0.5rem;
-  border-bottom: 1px solid var(--border);
-}
+/* Scrollbar hiding for horizontal scroll areas */
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-.day-pill {
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.875rem;
-  white-space: nowrap;
-  cursor: pointer;
+/* Safe area for notched phones */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
 }
-
-.day-pill.active {
-  background: var(--accent);
-  color: white;
-}
-
-/* Stop cards */
-.stop-card {
-  border-bottom: 1px solid var(--border);
-}
-
-/* Highlight cards by category */
-.highlight-warning { background: #fef3c7; }
-.highlight-scenic { background: #dcfce7; }
-.highlight-cost { background: #dbeafe; }
-.highlight-tip { background: #f3e8ff; }
-.highlight-info { background: #f3f4f6; }
 
 /* Mobile optimizations */
 @media (max-width: 375px) {

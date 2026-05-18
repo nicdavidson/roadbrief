@@ -75,6 +75,7 @@ export default function RideMap({ days, activeDay, selectedStopId, onMarkerClick
     if (!mapContainer.current || days.length === 0) return;
 
     const token = import.meta.env.VITE_MAPBOX_TOKEN || '';
+    if (token) mapboxgl.accessToken = token;
     const allStops = days.flatMap(d => d.stops || []);
     if (allStops.length === 0) return;
 
@@ -268,5 +269,5 @@ export default function RideMap({ days, activeDay, selectedStopId, onMarkerClick
 
   }, [selectedStopId]);
 
-  return <div ref={mapContainer} className="w-full h-[60vh] min-h-[250px] bg-gray-100 dark:bg-gray-800" />;
+  return <div ref={mapContainer} className="w-full h-[45vh] sm:h-[55vh] min-h-[280px] bg-gray-100 dark:bg-slate-800" />;
 }

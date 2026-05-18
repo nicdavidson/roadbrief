@@ -95,8 +95,14 @@ def delete_poi(stop_id: int, poi_id: int, session: Session = Depends(get_session
     return {"ok": True}
 
 
-@router.get("/pois/index")
-def index_pois(session: Session = Depends(get_session), rider=Depends(require_admin)):
-    """Re-index all POIs for search. [admin]"""
-    pois = session.query(POI).all()
-    return {"ok": True, "pois_indexed": len(pois)}
+@router.post("/stops/{stop_id}/index-pois")
+def index_stop_pois(stop_id: int, session: Session = Depends(get_session)):
+    """Re-index POIs for a single stop from Overpass. [public — read-only data]"""
+    from app.services.poi import index_pois_for_stop
+
+    stop = session.get(Stop, stop_id)
+    if not stop:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stop not found.")
+
+    pois = index_pois_for_stop(stop_id, session)
+    return {"ok": True, "stop": stop.name, "pois_found": len(pois)}

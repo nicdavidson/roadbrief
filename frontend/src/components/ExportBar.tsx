@@ -8,73 +8,73 @@ interface ExportBarProps {
 export default function ExportBar({ dayId, rideShareCode }: ExportBarProps) {
   const gpxUrl = `/api/v1/days/${dayId}/export/gpx`;
   const googleMapsUrl = `/api/v1/days/${dayId}/export/url`;
-
-  // Generate a simple QR code using a public API
-  const [showQR, setShowQR] = useState(false);
+  const [showShare, setShowShare] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const shareUrl = rideShareCode ? `${window.location.origin}/ride/${rideShareCode}` : '';
 
+  const handleCopy = () => {
+    navigator.clipboard.writeText(shareUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
-    <div className="mt-4 space-y-3">
-      {/* Action buttons */}
+    <>
       <div className="flex flex-wrap gap-2">
         <a
           href={gpxUrl}
           download={`day-${dayId}.gpx`}
-          className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+          className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors min-h-[44px]"
         >
-          <span>📥</span> Export GPX
+          GPX
         </a>
 
         <a
           href={googleMapsUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors"
+          className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors min-h-[44px]"
         >
-          <span>🗺️</span> Google Maps
+          Google Maps
         </a>
 
         {rideShareCode && (
           <button
-            onClick={() => setShowQR(!showQR)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors"
+            onClick={() => setShowShare(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors min-h-[44px]"
           >
-            <span>📱</span> QR Code
+            Share Ride
           </button>
         )}
       </div>
 
-      {/* Share URL modal */}
-      {showQR && shareUrl && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowQR(false)}>
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-sm w-full" onClick={e => e.stopPropagation()}>
-            <h3 className="font-semibold text-center mb-4">Share this ride</h3>
-            <p className="text-sm text-center font-mono bg-gray-100 dark:bg-gray-700 px-3 py-2 rounded break-all select-all">{shareUrl}</p>
+      {/* Share modal */}
+      {showShare && shareUrl && (
+        <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50" onClick={() => setShowShare(false)}>
+          <div
+            className="bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl p-6 w-full max-w-sm safe-bottom"
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 className="font-semibold text-lg text-gray-900 dark:text-white text-center mb-4">Share this ride</h3>
+            <div className="bg-gray-100 dark:bg-slate-700 rounded-lg px-4 py-3 text-center">
+              <p className="text-sm font-mono text-gray-700 dark:text-gray-300 break-all select-all">{shareUrl}</p>
+            </div>
             <button
-              onClick={() => { navigator.clipboard.writeText(shareUrl); }}
-              className="mt-3 w-full px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+              onClick={handleCopy}
+              className="mt-4 w-full py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors min-h-[48px]"
             >
-              Copy Link
+              {copied ? 'Copied!' : 'Copy Link'}
             </button>
             <button
-              onClick={() => setShowQR(false)}
-              className="mt-2 w-full px-3 py-2 bg-gray-200 dark:bg-gray-700 text-sm rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
+              onClick={() => setShowShare(false)}
+              className="mt-2 w-full py-3 text-gray-500 dark:text-gray-400 text-sm font-medium min-h-[44px]"
             >
-              Close
+              Done
             </button>
           </div>
         </div>
       )}
-
-      {/* Shareable link */}
-      {rideShareCode && (
-        <div className="flex items-center gap-2 text-xs">
-          <span className="text-gray-500 truncate flex-1 font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
-            /ride/{rideShareCode}
-          </span>
-        </div>
-      )}
-    </div>
+    </>
   );
 }

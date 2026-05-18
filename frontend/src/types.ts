@@ -39,6 +39,8 @@ export interface StopRead {
   rally_point_lng?: number | null;
   rally_point_name?: string | null;
   pois?: POIRead[];
+  // Computed by frontend for ETA display
+  eta_minutes_from_start?: number | null;
 }
 
 export interface LegRead {
@@ -95,17 +97,19 @@ export interface RideResponse {
   days?: DayRead[];
 }
 
-// Photo types
+// Photo types (matches backend list_photos response)
 export interface PhotoRead {
   id: number;
   ride_id: number;
-  day_num?: number | null;
-  stop_num?: number | null;
-  file_path: string;
+  rider_id?: number | null;
+  image_url: string;
   caption?: string | null;
   lat?: number | null;
   lng?: number | null;
-  created_at: string;
+  nearest_stop_id?: number | null;
+  taken_at?: string | null;
+  uploaded_at: string;
+  featured: boolean;
 }
 
 // Rider profile types (matches RiderRead from backend)
